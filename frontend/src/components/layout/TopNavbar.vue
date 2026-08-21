@@ -7,9 +7,11 @@
       <div class="search-box">
         <i class="bi bi-search search-icon"></i>
         <input
+          v-model="globalSearch"
           type="text"
           class="search-input"
           placeholder="Search products, customers, orders..."
+          @keyup.enter="handleGlobalSearch"
         />
         <span class="search-shortcut">Ctrl K</span>
       </div>
@@ -117,6 +119,7 @@ const isDark = ref(false);
 const showNotifications = ref(false);
 const showMobileSearch = ref(false);
 const mobileSearchInput = ref(null);
+const globalSearch = ref('');
 const notifications = ref([]);
 const unreadCount = ref(0);
 const dropdownRef = ref(null);
@@ -144,6 +147,13 @@ const toggleTheme = () => {
   isDark.value = !isDark.value;
   document.documentElement.setAttribute('data-bs-theme', isDark.value ? 'dark' : 'light');
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
+};
+
+const handleGlobalSearch = () => {
+  if (globalSearch.value.trim()) {
+    router.push({ path: '/products', query: { search: globalSearch.value.trim() } });
+    globalSearch.value = '';
+  }
 };
 
 const getNotifIcon = (type) => {

@@ -168,6 +168,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { formatCurrency } from '../utils/format';
 import SearchInput from '../components/common/SearchInput.vue';
@@ -178,6 +179,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner.vue';
 import ConfirmDialog from '../components/common/ConfirmDialog.vue';
 import BaseToast from '../components/common/BaseToast.vue';
 
+const route = useRoute();
 const products = ref([]);
 const categories = ref([]);
 const brands = ref([]);
@@ -259,6 +261,9 @@ const confirmDelete = async () => {
 };
 
 onMounted(() => {
+  if (route.query.search) {
+    search.value = route.query.search;
+  }
   fetchProducts();
   fetchFilters();
 });

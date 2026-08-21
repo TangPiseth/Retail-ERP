@@ -6,7 +6,7 @@
         <p class="page-subtitle">Welcome back. Here's what's happening today.</p>
       </div>
       <div class="dashboard-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportDashboard">
           <i class="bi bi-download"></i>
           Export
         </button>
@@ -269,6 +269,24 @@ const renderCharts = () => {
       },
     });
   }
+};
+
+const exportDashboard = () => {
+  const rows = [
+    ['Metric', 'Value'],
+    ['Today\'s Sales', dashboard.value.todaySales],
+    ['Transactions', dashboard.value.todayTransactions],
+    ['Total Products', dashboard.value.totalProducts],
+    ['Low Stock', dashboard.value.lowStockCount],
+  ];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dashboard-report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 onMounted(fetchDashboard);
