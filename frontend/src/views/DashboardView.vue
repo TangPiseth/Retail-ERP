@@ -150,6 +150,7 @@
 import { ref, onMounted, nextTick } from 'vue';
 import api from '../services/api';
 import { formatCurrency, formatDate } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import StatCard from '../components/common/StatCard.vue';
 import BaseBadge from '../components/common/BaseBadge.vue';
 import EmptyState from '../components/common/EmptyState.vue';
@@ -272,21 +273,12 @@ const renderCharts = () => {
 };
 
 const exportDashboard = () => {
-  const rows = [
-    ['Metric', 'Value'],
-    ['Today\'s Sales', dashboard.value.todaySales],
+  exportCsv('dashboard-report.csv', ['Metric', 'Value'], [
+    ["Today's Sales", dashboard.value.todaySales],
     ['Transactions', dashboard.value.todayTransactions],
     ['Total Products', dashboard.value.totalProducts],
     ['Low Stock', dashboard.value.lowStockCount],
-  ];
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'dashboard-report.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  ]);
 };
 
 onMounted(fetchDashboard);

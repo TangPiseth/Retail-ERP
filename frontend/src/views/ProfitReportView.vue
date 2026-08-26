@@ -6,9 +6,9 @@
         <p class="page-subtitle">Detailed profit & loss analysis</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportProfitReport" :disabled="exporting">
           <i class="bi bi-download"></i>
-          Export
+          {{ exporting ? 'Exporting…' : 'Export' }}
         </button>
       </div>
     </div>
@@ -54,9 +54,11 @@
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import { formatCurrency } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import StatCard from '../components/common/StatCard.vue';
 
 const report = ref({ revenue: 0, cogs: 0, grossProfit: 0, discounts: 0, expenses: 0, netProfit: 0 });
+const exporting = ref(false);
 const filters = ref({ startDate: '', endDate: '' });
 
 const fetchReport = async () => {
@@ -64,6 +66,18 @@ const fetchReport = async () => {
     const { data } = await api.get('/reports/profit', { params: filters.value });
     report.value = data.data;
   } catch (err) { console.error(err); }
+};
+
+const exportProfitReport = () => {
+  const rows = [
+    ['Revenue', report.value.revenue],
+    ['COGS', report.value.cogs],
+    ['Gross Profit', report.value.grossProfit],
+    ['Discounts', report.value.discounts],
+    ['Expenses', report.value.expenses],
+    ['Net Profit', report.value.netProfit],
+  ];
+  exportCsv('profit-report.csv', ['Metric', 'Amount'], rows);
 };
 
 onMounted(fetchReport);

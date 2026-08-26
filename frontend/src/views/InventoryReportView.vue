@@ -6,9 +6,9 @@
         <p class="page-subtitle">Stock valuation and alerts</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportInventoryReport" :disabled="exporting">
           <i class="bi bi-download"></i>
-          Export
+          {{ exporting ? 'Exporting…' : 'Export' }}
         </button>
       </div>
     </div>
@@ -90,15 +90,37 @@
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import { formatCurrency } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import StatCard from '../components/common/StatCard.vue';
 
 const report = ref({ totalValue: 0, totalProducts: 0, lowStock: [], outOfStock: [] });
+const exporting = ref(false);
 
 const fetchReport = async () => {
   try {
     const { data } = await api.get('/reports/inventory');
     report.value = data.data;
   } catch (err) { console.error(err); }
+};
+
+const exportInventoryReport = () => {
+  const rows = [
+    ...report.value.lowStock.map((p) => [
+      p.name,
+      p.category?.name || '',
+      p.inventory?.currentQuantity || 0,
+      p.minStock || 0,
+      'Low Stock',
+    ]),
+    ...report.value.outOfStock.map((p) => [
+      p.name,
+      p.category?.name || '',
+      0,
+      p.minStock || 0,
+      'Out of Stock',
+    ]),
+  ];
+  exportCsv('inventory-report.csv', ['Product', 'Category', 'Current Quantity', 'Min Stock', 'Status'], rows);
 };
 
 onMounted(fetchReport);

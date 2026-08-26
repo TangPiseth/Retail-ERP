@@ -6,9 +6,9 @@
         <p class="page-subtitle">Analyze sales performance over time</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportSalesReport" :disabled="exporting">
           <i class="bi bi-download"></i>
-          Export CSV
+          {{ exporting ? 'Exporting…' : 'Export CSV' }}
         </button>
       </div>
     </div>
@@ -80,12 +80,14 @@
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import { formatCurrency, formatDate } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import StatCard from '../components/common/StatCard.vue';
 import EmptyState from '../components/common/EmptyState.vue';
 import LoadingSpinner from '../components/common/LoadingSpinner.vue';
 
 const sales = ref([]);
 const loading = ref(false);
+const exporting = ref(false);
 const summary = ref({ totalSales: 0, transactionCount: 0, averageTransaction: 0, totalDiscount: 0 });
 const filters = ref({ startDate: '', endDate: '' });
 
@@ -96,6 +98,18 @@ const fetchReport = async () => {
     sales.value = data.data.sales;
     summary.value = data.data.summary;
   } catch (err) { console.error(err); } finally { loading.value = false; }
+};
+
+const exportSalesReport = () => {
+  const rows = sales.value.map((s) => [
+    s.saleNumber,
+    s.customer?.name || 'Walk-in',
+    `${s.cashier?.firstName || ''} ${s.cashier?.lastName || ''}`.trim(),
+    s.totalAmount,
+    s.paymentMethod,
+    formatDate(s.saleDate),
+  ]);
+  exportCsv('sales-report.csv', ['Invoice', 'Customer', 'Cashier', 'Amount', 'Method', 'Date'], rows);
 };
 
 onMounted(fetchReport);

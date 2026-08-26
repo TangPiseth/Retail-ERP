@@ -6,9 +6,9 @@
         <p class="page-subtitle">Manage your product catalog and inventory</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportProducts" :disabled="exporting">
           <i class="bi bi-download"></i>
-          Export
+          {{ exporting ? 'Exporting…' : 'Export' }}
         </button>
         <router-link to="/products/create" class="btn btn-primary btn-sm">
           <i class="bi bi-plus-lg"></i>
@@ -171,6 +171,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../services/api';
 import { formatCurrency } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import SearchInput from '../components/common/SearchInput.vue';
 import BasePagination from '../components/common/BasePagination.vue';
 import BaseBadge from '../components/common/BaseBadge.vue';
@@ -190,6 +191,7 @@ const pagination = ref({ currentPage: 1, totalPages: 1, totalItems: 0, limit: 20
 const confirmDialogRef = ref(null);
 const toastRef = ref(null);
 const productToDelete = ref(null);
+const exporting = ref(false);
 
 const stockClass = (row) => {
   const qty = row.inventory?.currentQuantity || 0;
@@ -257,6 +259,37 @@ const confirmDelete = async () => {
     toastRef.value?.add(err.response?.data?.message || 'Failed to delete product', 'error');
   } finally {
     productToDelete.value = null;
+  }
+};
+
+const exportProducts = async () => {
+  exporting.value = true;
+  try {
+    const { data } = await api.get('/products', {
+      params: {
+        search: search.value,
+        categoryId: filters.value.categoryId,
+        brandId: filters.value.brandId,
+        stockStatus: filters.value.stockStatus,
+        limit: 100000,
+      },
+    });
+    const rows = (data.data || []).map((p) => [
+      p.sku,
+      p.name,
+      p.category?.name || '',
+      p.brand?.name || '',
+      p.unit?.shortName || p.unit?.name || '',
+      p.costPrice,
+      p.sellingPrice,
+      p.inventory?.currentQuantity || 0,
+      p.isActive ? 'Active' : 'Inactive',
+    ]);
+    exportCsv('products.csv', ['SKU', 'Name', 'Category', 'Brand', 'Unit', 'Cost Price', 'Selling Price', 'Stock', 'Status'], rows);
+  } catch (err) {
+    console.error('Failed to export products:', err);
+  } finally {
+    exporting.value = false;
   }
 };
 

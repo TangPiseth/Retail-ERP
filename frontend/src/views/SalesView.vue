@@ -6,9 +6,9 @@
         <p class="page-subtitle">View and manage all sales transactions</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportSales" :disabled="exporting">
           <i class="bi bi-download"></i>
-          Export
+          {{ exporting ? 'Exporting…' : 'Export' }}
         </button>
         <router-link to="/sales/pos" class="btn btn-primary btn-sm">
           <i class="bi bi-upc-scan"></i>
@@ -95,6 +95,7 @@
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import { formatCurrency, formatDate } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import BasePagination from '../components/common/BasePagination.vue';
 import BaseBadge from '../components/common/BaseBadge.vue';
 import EmptyState from '../components/common/EmptyState.vue';
@@ -104,6 +105,7 @@ const sales = ref([]);
 const loading = ref(false);
 const filters = ref({ startDate: '', endDate: '', status: '' });
 const pagination = ref({ currentPage: 1, totalPages: 1, totalItems: 0, limit: 20 });
+const exporting = ref(false);
 
 const fetchSales = async () => {
   loading.value = true;
@@ -123,6 +125,35 @@ const fetchSales = async () => {
 const handlePageChange = (page) => {
   pagination.value.currentPage = page;
   fetchSales();
+};
+
+const exportSales = async () => {
+  exporting.value = true;
+  try {
+    const { data } = await api.get('/sales', {
+      params: {
+        startDate: filters.value.startDate,
+        endDate: filters.value.endDate,
+        status: filters.value.status,
+        limit: 100000,
+      },
+    });
+    const rows = (data.data || []).map((s) => [
+      s.saleNumber,
+      s.customer?.name || 'Walk-in',
+      `${s.cashier?.firstName || ''} ${s.cashier?.lastName || ''}`.trim(),
+      s.totalAmount,
+      s.paymentMethod,
+      s.status,
+      s.paymentStatus,
+      formatDate(s.saleDate),
+    ]);
+    exportCsv('sales.csv', ['Invoice', 'Customer', 'Cashier', 'Amount', 'Method', 'Status', 'Payment', 'Date'], rows);
+  } catch (err) {
+    console.error('Failed to export sales:', err);
+  } finally {
+    exporting.value = false;
+  }
 };
 
 onMounted(fetchSales);

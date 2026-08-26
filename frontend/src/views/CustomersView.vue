@@ -6,9 +6,9 @@
         <p class="page-subtitle">Manage your customer database</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline-primary btn-sm">
+        <button class="btn btn-outline-primary btn-sm" @click="exportCustomers" :disabled="exporting">
           <i class="bi bi-download"></i>
-          Export
+          {{ exporting ? 'Exporting…' : 'Export' }}
         </button>
         <button class="btn btn-primary btn-sm" @click="openAddModal">
           <i class="bi bi-plus-lg"></i>
@@ -132,6 +132,7 @@
 import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import { formatCurrency } from '../utils/format';
+import { exportCsv } from '../utils/exportCsv';
 import SearchInput from '../components/common/SearchInput.vue';
 import BasePagination from '../components/common/BasePagination.vue';
 import BaseBadge from '../components/common/BaseBadge.vue';
@@ -155,6 +156,7 @@ const toastRef = ref(null);
 const customerToDelete = ref(null);
 const form = ref({ name: '', phone: '', email: '', address: '' });
 const pagination = ref({ currentPage: 1, totalPages: 1, totalItems: 0, limit: 20 });
+const exporting = ref(false);
 
 const getInitials = (name) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -235,6 +237,28 @@ const confirmDelete = async () => {
 const handlePageChange = (page) => {
   pagination.value.currentPage = page;
   fetchCustomers();
+};
+
+const exportCustomers = async () => {
+  exporting.value = true;
+  try {
+    const { data } = await api.get('/customers', {
+      params: { search: search.value, limit: 100000 },
+    });
+    const rows = (data.data || []).map((c) => [
+      c.name,
+      c.phone || '',
+      c.email || '',
+      c.address || '',
+      c.loyaltyPoints || 0,
+      c.totalSpent || 0,
+    ]);
+    exportCsv('customers.csv', ['Name', 'Phone', 'Email', 'Address', 'Loyalty Points', 'Total Spent'], rows);
+  } catch (err) {
+    console.error('Failed to export customers:', err);
+  } finally {
+    exporting.value = false;
+  }
 };
 
 onMounted(fetchCustomers);
